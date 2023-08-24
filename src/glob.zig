@@ -4,11 +4,16 @@ pub fn matches(path: []const u8, glob: []const u8) bool {
     var i_p = path.len;
     var i_g = glob.len;
 
+    //std.debug.print("\n\n", .{});
+
     while (i_p > 0 and i_g > 0) {
         const g = glob[i_g - 1];
         const p = path[i_p - 1];
 
         //std.debug.print("{c} {d} {c} {d}\n", .{ g, i_g, p, i_p });
+        if (i_p == 1 and i_g > 1) {
+            return false;
+        }
 
         switch (g) {
             '*' => {
@@ -17,6 +22,7 @@ pub fn matches(path: []const u8, glob: []const u8) bool {
                     if (i_g == 0) {
                         return false;
                     }
+                    continue;
                 }
 
                 if (i_g > 1) {
@@ -54,4 +60,5 @@ test "glob" {
     try std.testing.expect(matches("go.mod", "go.*"));
     try std.testing.expect(!matches("shego.md", "go.*"));
     try std.testing.expect(!matches("build.zig", "src/*.zig"));
+    try std.testing.expect(matches("src/main.zig", "src/*.zig"));
 }

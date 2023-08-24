@@ -22,7 +22,6 @@ pub fn main() !void {
     var it = try std.fs.openIterableDirAbsolute(dirname, .{});
     var walker = try it.walk(allocator);
     while (try walker.next()) |entry| {
-        std.debug.print("walking {s} {s}\n", .{ entry.path, glopt });
         if (glob.matches(entry.path, glopt)) {
             std.debug.print("MATCH {s} {s}\n", .{ entry.path, glopt });
         }
