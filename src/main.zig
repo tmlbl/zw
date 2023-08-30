@@ -1,29 +1,38 @@
 const std = @import("std");
-const glob = @import("./glob.zig");
+
+const Action = struct {};
 
 pub fn main() !void {
-    const allocator = std.heap.page_allocator;
+    var args = std.process.args();
+    _ = args.skip();
+    var allocator = std.heap.page_allocator;
 
-    var args = try std.process.argsAlloc(allocator);
-    defer allocator.free(args);
+    var files = std.ArrayList([]const u8).init(allocator);
+    defer files.deinit();
 
-    if (args.len < 2) {
-        std.debug.print("usage: doot [glob]", .{});
-        return;
-    }
-    const glopt = args[1];
+    var in_capture_files = false;
+    while (args.next()) |arg| {
+        std.debug.print("argument: {s}\n", .{arg});
 
-    std.debug.print("opt: {s}\n", .{glopt});
-
-    const dir = std.fs.cwd();
-    const dirname = try dir.realpathAlloc(allocator, ".");
-    defer allocator.free(dirname);
-
-    var it = try std.fs.openIterableDirAbsolute(dirname, .{});
-    var walker = try it.walk(allocator);
-    while (try walker.next()) |entry| {
-        if (glob.matches(entry.path, glopt)) {
-            std.debug.print("MATCH {s} {s}\n", .{ entry.path, glopt });
+        if (std.mem.startsWith(u8, arg, "--")) {
+            in_capture_files = false;
         }
+
+        if (in_capture_files) {
+            var buf = try allocator.alloc(u8, arg.len);
+            @memcpy(buf, arg);
+            try files.append(buf);
+            continue;
+        }
+
+        if (std.mem.eql(u8, arg, "--files")) {
+            in_capture_files = true;
+            continue;
+        }
+    }
+
+    var watcher = try std.fs.Watch(Action).init(allocator, files.items.len);
+    for (files.items) |path| {
+        try watcher.addFile(path, Action{});
     }
 }
